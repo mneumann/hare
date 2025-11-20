@@ -7,6 +7,34 @@ fn strvec(s: str) iovec = {
 		iov_len = len(s),
 	};
 };
+export fn debug_u64(num: u64) void = {
+	let numbuf: [U64_BUFSZ]u8 = [0...];
+	const iov = [
+		strvec(u64tos(numbuf, num)),
+		strvec("\n"),
+	];
+	_ = writev(STDERR_FILENO, &iov, len(iov): int);
+
+};
+
+export fn debug_raw(ptr: *opaque, sz: size) void = {
+	const iov = [
+		iovec {
+			iov_base = ptr,
+			iov_len = sz,
+		},
+		strvec("\n"),
+	];
+	_ = writev(STDERR_FILENO, &iov, len(iov): int);
+};
+
+export fn debug(msg: str) void = {
+	const iov = [
+		strvec(msg),
+		strvec("\n"),
+	];
+	_ = writev(STDERR_FILENO, &iov, len(iov): int);
+};
 
 fn platform_abort(path: *str, line: u64, col: u64, msg: str) never = {
 	let linebuf: [U64_BUFSZ]u8 = [0...];

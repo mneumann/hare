@@ -16,28 +16,28 @@ export type gid = rt::gid_t;
 
 // Returns the current process user ID.
 export fn getuid() uid = {
-	let uid = 0u, euid = 0u, suid = 0u;
+	let uid = 0u32, euid = 0u32, suid = 0u32;
 	rt::getresuid(&uid, &euid, &suid) as void;
 	return uid;
 };
 
 // Returns the current process effective user ID.
 export fn geteuid() uid = {
-	let uid = 0u, euid = 0u, suid = 0u;
+	let uid = 0u32, euid = 0u32, suid = 0u32;
 	rt::getresuid(&uid, &euid, &suid) as void;
 	return euid;
 };
 
 // Returns the current process group ID.
 export fn getgid() gid = {
-	let gid = 0u, egid = 0u, sgid = 0u;
+	let gid = 0u32, egid = 0u32, sgid = 0u32;
 	rt::getresgid(&gid, &egid, &sgid) as void;
 	return gid;
 };
 
 // Returns the current process effective group ID.
 export fn getegid() gid = {
-	let gid = 0u, egid = 0u, sgid = 0u;
+	let gid = 0u32, egid = 0u32, sgid = 0u32;
 	rt::getresgid(&gid, &egid, &sgid) as void;
 	return egid;
 };

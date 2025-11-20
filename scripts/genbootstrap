@@ -3,7 +3,8 @@
 cd "$(dirname "$0")/.."
 mkdir -p "${BINOUT:-.bin}" makefiles/
 "${HARE:-hare}" build -o "${BINOUT:-.bin}"/genbootstrap cmd/genbootstrap
-for platform in linux freebsd openbsd netbsd; do
+exit 1
+for platform in linux freebsd dragonfly openbsd netbsd; do
 	platformtags=
 	if [ $platform = "openbsd" ]; then
 		platformtags=libc

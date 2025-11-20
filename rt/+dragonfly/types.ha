@@ -3,28 +3,29 @@
 
 export type time_t = i64;
 export type suseconds_t = i64;
-export type dev_t = u64;
+export type dev_t = u32;
 export type ino_t = u64;
-export type nlink_t = u64;
-export type id_t = uint;
-export type pid_t = uint;
-export type uid_t = uint;
-export type gid_t = uint;
+export type nlink_t = u32;
+export type id_t = uint; // TODO
+export type pid_t = i32;
+export type uid_t = u32;
+export type gid_t = u32;
 export type off_t = i64;
 export type blkcnt_t = i64;
-export type blksize_t = i32;
+export type blksize_t = i64;
 export type fflags_t = u32;
 export type mode_t = u16;
 export type nfds_t = uint;
-export type rlim_t = u64;
+export type rlim_t = i64;
 
-export def NGROUPS_MAX: size = 1023;
-export def NSIG: int = 32;
+export def NGROUPS_MAX: size = 16;
+export def NSIG: int = 64;
 
 export type sigset = struct {
-	__bits: [4]u32,
+	__bits: [4]u32, // uint
 };
 
+// OK
 export def SA_ONSTACK: int = 0x0001;
 export def SA_RESTART: int = 0x0002;
 export def SA_RESETHAND: int = 0x0004;
@@ -33,12 +34,15 @@ export def SA_NODEFER: int = 0x0010;
 export def SA_NOCLDWAIT: int = 0x0020;
 export def SA_SIGINFO: int = 0x0040;
 
+// OK
 export def SIG_ERR: uintptr = -1;
 export def SIG_DFL: uintptr = 0;
 export def SIG_IGN: uintptr = 1;
 export def SIG_CATCH: uintptr = 2;
 export def SIG_HOLD: uintptr = 3;
 
+// OK
+// struct sigaction
 export type sigact = struct {
 	union {
 		sa_handler: nullable *fn (_: int) void,
@@ -49,62 +53,73 @@ export type sigact = struct {
 	sa_mask: sigset,
 };
 
+// OK
 export type kevent_t = struct {
 	ident: uintptr,
 	filter: i16,
-	flags: i16,
+	flags: u16,
 	fflags: uint,
-	data: i64,
+	data: i64, // intptr_t
 	udata: *opaque,
-	ext: [4]u64,
 };
 
+// OK
 export def SIG_BLOCK: int = 1;
 export def SIG_UNBLOCK: int = 2;
 export def SIG_SETMASK: int = 3;
 
+// OK
 export type sigval = union {
 	sival_int: int,
 	sival_ptr: *opaque,
 };
 
+// OK
 export type stack_t = struct {
 	ss_sp: *opaque,
 	ss_size: size,
 	ss_flags: int,
 };
 
+// OK
 export type pollfd = struct {
 	fd: int,
 	events: i16,
 	revents: i16,
 };
 
+// OK
 export type timespec = struct {
-	tv_sec: time_t,
-	tv_nsec: i64,
+	tv_sec: time_t, // seconds
+	tv_nsec: i64, // and nanoseconds (long in DragonFly)
 };
 
-export def UTIME_OMIT = -0x2;
+export def UTIME_OMIT = -2;
 
+// OK
 export type timeval = struct {
 	tv_sec: time_t,
 	tv_usec: suseconds_t,
 };
 
+//
+// Advisory file segment locking data type -
+// information passed to system by user
+//
+// (struct flock in DragonFly)
+//
 export type st_flock = struct {
-	l_start: off_t,
-	l_len: off_t,
-	l_pid: pid_t,
-	l_type: i16,
-	l_whence: i16,
-	l_sysid: int,
+	l_start: off_t,	// starting offset
+	l_len: off_t,	// len = 0 means until end of file
+	l_pid: pid_t,	// lock owner
+	l_type: i16,	// lock type: read/write, etc.
+	l_whence: i16,	// type of l_start
 };
 
 export type st = struct {
-	dev: dev_t,
 	ino: ino_t,
 	nlink: nlink_t,
+	dev: dev_t,
 	mode: mode_t,
 	uid: uid_t,
 	gid: gid_t,
@@ -112,39 +127,48 @@ export type st = struct {
 	atime: timespec,
 	mtime: timespec,
 	ctime: timespec,
-	btime: timespec,
 	sz: off_t,
 	blocks: blkcnt_t,
 	blksz: blksize_t,
 	flags: fflags_t,
 };
 
-export type freebsd11_stat = struct {
-	st_dev: u32,
-	st_ino: u32,
-	st_mode: mode_t,
-	st_nlink: u16,
-	st_uid: uid_t,
-	st_gid: gid_t,
-	st_rdev: u32,
-	st_atim: timespec,
-	st_mtim: timespec,
-	st_ctim: timespec,
-	st_size: off_t,
-	st_blocks: blkcnt_t,
-	st_blksize: blksize_t,
-	st_flags: fflags_t,
-	st_gen: u32,
-	st_lspare: u32,
-	st_birthtim: timespec,
+// struct stat in DragonFly
+export type dragonfly_stat = struct {
+	st_ino: ino_t,		// inode's number
+	st_nlink: nlink_t,	// number of hard links
+	st_dev: dev_t,		// inode's device
+	st_mode: mode_t,	// inode protection mode
+	_: u16,			// padding
+	st_uid: uid_t,		// user ID of the file's owner
+	st_gid: gid_t,		// group ID of the file's owner
+	st_rdev: dev_t,		// device type
+	st_atim: timespec,	// time of last access
+	st_mtim: timespec,	// time of last modification
+	st_ctim: timespec,	// time of last file status change
+	st_size: off_t,		// file size, in bytes
+	st_blocks: blkcnt_t,	// blocks allocated for file
+	__old_st_blksize: u32,	// old ABI compatibility only
+	st_flags: u32,		// user defined flags for file
+	st_gen: u32,		// file generation number
+	st_lspare: i32,
+	st_blksize: blksize_t,	// optimal blocksize for I/O
+	st_qspare2: i64,
 };
 
-export type freebsd11_dirent = struct {
-	d_fileno: u32,
-	d_reclen: u16,
-	d_type: u8,
-	d_namlen: u8,
-	d_name: [*]u8,
+export type dragonfly_dirent = struct {
+	d_fileno: ino_t,	// file number of entry
+	d_namlen: u16,		// strlen(d_name)
+	d_type: u8,		// file type
+	_: u8,			// padding, reserved
+	_: u32,			// reserved
+	d_name: [255+1]u8,	// name, NUL-terminated
+};
+
+// offset of "d_name" field + namelen + padding to 8 bytes boundary
+export fn DIRENT_RECLEN(namelen: u64) u64 = {
+	const offsetof_d_name: u64 = 16;
+	return ((offsetof_d_name + (namelen) + 1 + 7) & ~7u64);
 };
 
 export type iovec = struct {
@@ -296,36 +320,40 @@ export def DT_LNK: u8 = 10;
 export def DT_SOCK: u8 = 12;
 export def DT_WHT: u8 = 14;
 
-export def O_RDONLY: int = 0x0000;
-export def O_WRONLY: int = 0x0001;
-export def O_RDWR: int = 0x0002;
-export def O_ACCMODE: int = 0x0003;
-export def O_NONBLOCK: int = 0x0004;
-export def O_APPEND: int = 0x0008;
-export def O_SHLOCK: int = 0x0010;
-export def O_EXLOCK: int = 0x0020;
-export def O_ASYNC: int = 0x0040;
-export def O_FSYNC: int = 0x0080;
-export def O_SYNC: int = 0x0080;
-export def O_NOFOLLOW: int = 0x0100;
-export def O_CREAT: int = 0x0200;
-export def O_TRUNC: int = 0x0400;
-export def O_EXCL: int = 0x0800;
-export def O_NOCTTY: int = 0x8000;
-export def O_DIRECT: int = 0x00010000;
-export def O_DIRECTORY: int = 0x00020000;
-export def O_EXEC: int = 0x00040000;
-export def O_TTY_INIT: int = 0x00080000;
-export def O_CLOEXEC: int = 0x00100000;
-export def O_DSYNC: int = 0x01000000;
+export def O_RDONLY: int   = 0x0000;	// open for reading only
+export def O_WRONLY: int   = 0x0001;	// open for writing only
+export def O_RDWR: int     = 0x0002;	// open for reading and writing
+export def O_ACCMODE: int  = 0x0003;	// mask for above modes
+export def O_NONBLOCK: int = 0x0004;	// no delay
+export def O_APPEND: int   = 0x0008;	// set append mode
+export def O_SHLOCK: int   = 0x0010;	// open with shared file lock
+export def O_EXLOCK: int   = 0x0020;	// open with exclusive file lock
+export def O_ASYNC: int    = 0x0040;	// signal pgrp when data ready
+export def O_FSYNC: int    = 0x0080;	// synchronous writes
+export def O_SYNC: int     = 0x0080;	// same as O_FSYNC, but POSIX
+export def O_NOFOLLOW: int = 0x0100;	// don't follow symlinks
+export def O_CREAT: int    = 0x0200;	// create if nonexistent
+export def O_TRUNC: int    = 0x0400;	// truncate to zero length
+export def O_EXCL: int     = 0x0800;	// error if already exists
+export def O_NOCTTY: int   = 0x8000;	// don't assign controlling terminal
 
-export def AT_FDCWD: int = -100;
-export def AT_EACCESS: int = 0x0100;
-export def AT_SYMLINK_NOFOLLOW: int = 0x0200;
-export def AT_SYMLINK_FOLLOW: int = 0x0400;
-export def AT_REMOVEDIR: int = 0x0800;
-export def AT_RESOLVE_BENEATH: int = 0x2000;
-export def AT_EMPTY_PATH: int = 0x4000;
+export def O_DIRECT: int  = 0x00010000;	// attempt to bypass the buffer cache
+export def O_CLOEXEC: int = 0x00020000;	// atomically set FD_CLOEXEC
+
+export def O_FBLOCKING: int    = 0x00040000; // force blocking I/O
+export def O_FNONBLOCKING: int = 0x00080000; // force non-blocking I/O
+export def O_FAPPEND: int =      0x00100000; // force append mode for write
+export def O_FOFFSET: int =      0x00200000; // force append mode for write
+export def O_FSYNCWRITE: int =   0x00400000; // force synchronous write
+export def O_FASYNCWRITE: int =  0x00800000; // force asynchronous write
+export def O_CLOFORK: int =	 0x01000000; // atomically set FD_CLOFORK
+export def O_DIRECTORY: int =	 0x08000000; // error if not a directory
+
+export def AT_FDCWD: int = -328243; // 0xFFFA_FDCD;
+export def AT_SYMLINK_NOFOLLOW: int = 1;
+export def AT_REMOVEDIR: int = 2;
+export def AT_EACCESS: int = 4;
+export def AT_SYMLINK_FOLLOW: int = 8;
 
 export def S_IFIFO: mode_t = 0o010000;
 export def S_IFCHR: mode_t = 0o020000;

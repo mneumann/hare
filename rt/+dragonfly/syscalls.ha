@@ -147,34 +147,40 @@ export fn unlinkat(dirfd: int, path: path, flags: int) (void | errno) = {
 		dirfd: u64, path: uintptr: u64, flags: u64))?;
 };
 
-export fn fstatat(fd: int, path: path, stat: *st, flag: int) (void | errno) = {
-	let path = kpath(path)?;
-	let fbstat = freebsd11_stat { ... };
-	wrap_return(syscall4(SYS_freebsd11_fstatat, fd: u64,
-		path: uintptr: u64, &fbstat: uintptr: u64, flag: u64))?;
-	stat.dev = fbstat.st_dev;
-	stat.ino = fbstat.st_ino;
-	stat.mode = fbstat.st_mode;
-	stat.nlink = fbstat.st_nlink;
-	stat.uid = fbstat.st_uid;
-	stat.gid = fbstat.st_gid;
-	stat.rdev = fbstat.st_rdev;
-	stat.atime.tv_sec = fbstat.st_atim.tv_sec;
-	stat.atime.tv_nsec = fbstat.st_atim.tv_nsec: i64;
-	stat.mtime.tv_sec = fbstat.st_mtim.tv_sec;
-	stat.mtime.tv_nsec = fbstat.st_mtim.tv_nsec: i64;
-	stat.ctime.tv_sec = fbstat.st_ctim.tv_sec;
-	stat.ctime.tv_nsec = fbstat.st_ctim.tv_nsec: i64;
-	stat.btime.tv_sec = fbstat.st_birthtim.tv_sec;
-	stat.btime.tv_nsec = fbstat.st_birthtim.tv_nsec: i64;
-	stat.sz = fbstat.st_size;
-	stat.blocks = fbstat.st_blocks;
-	stat.blksz = fbstat.st_blksize;
-	stat.flags = fbstat.st_flags;
+fn convert_stat(dfstat: *dragonfly_stat, stat: *st) void = {
+	stat.dev = dfstat.st_dev;
+	stat.ino = dfstat.st_ino;
+	stat.mode = dfstat.st_mode;
+	stat.nlink = dfstat.st_nlink;
+	stat.uid = dfstat.st_uid;
+	stat.gid = dfstat.st_gid;
+	stat.rdev = dfstat.st_rdev;
+	stat.atime.tv_sec = dfstat.st_atim.tv_sec;
+	stat.atime.tv_nsec = dfstat.st_atim.tv_nsec;
+	stat.mtime.tv_sec = dfstat.st_mtim.tv_sec;
+	stat.mtime.tv_nsec = dfstat.st_mtim.tv_nsec;
+	stat.ctime.tv_sec = dfstat.st_ctim.tv_sec;
+	stat.ctime.tv_nsec = dfstat.st_ctim.tv_nsec;
+	stat.sz = dfstat.st_size;
+	stat.blocks = dfstat.st_blocks;
+	stat.blksz = dfstat.st_blksize;
+	stat.flags = dfstat.st_flags;
 };
 
-export fn fstat(fd: int, stat: *st) (errno | void) =
-	fstatat(fd, "", stat, AT_EMPTY_PATH);
+export fn fstatat(fd: int, path: path, stat: *st, flag: int) (void | errno) = {
+	let path = kpath(path)?;
+	let dfstat = dragonfly_stat { ... };
+	wrap_return(syscall4(SYS_fstatat, fd: u64,
+		path: uintptr: u64, &dfstat: uintptr: u64, flag: u64))?;
+	convert_stat(&dfstat, stat);
+};
+
+export fn fstat(fd: int, stat: *st) (errno | void) = {
+	let dfstat = dragonfly_stat { ... };
+	wrap_return(syscall2(SYS_fstat, fd: u64,
+		&dfstat: uintptr: u64))?;
+	convert_stat(&dfstat, stat);
+};
 
 export fn readlinkat(
 	dirfd: int,
@@ -256,9 +262,8 @@ export fn faccessat(
 export fn access(path: path, mode: int) (bool | errno) =
 	faccessat(AT_FDCWD, path, mode, 0);
 
-// TODO: Consider updating this to use SYS_freebsd11_getdirentries
 export fn getdents(dirfd: int, buf: *opaque, nbytes: size) (size | errno) = {
-	return wrap_return(syscall3(SYS_freebsd11_getdents, dirfd: u64,
+	return wrap_return(syscall3(SYS_getdents, dirfd: u64,
 		buf: uintptr: u64, nbytes: u64))?: size;
 };
 
@@ -358,11 +363,11 @@ export fn getppid() pid_t = syscall0(SYS_getppid): pid_t;
 export fn getpgrp() pid_t = syscall0(SYS_getpgrp): pid_t;
 
 export fn getpgid(pid: pid_t) (pid_t | errno) = {
-	return wrap_return(syscall1(SYS_getpgid, pid))?: pid_t;
+	return wrap_return(syscall1(SYS_getpgid, pid: u64))?: pid_t;
 };
 
 export fn getsid(pid: pid_t) (pid_t | errno) = {
-	return wrap_return(syscall1(SYS_getsid, pid))?: pid_t;
+	return wrap_return(syscall1(SYS_getsid, pid: u64))?: pid_t;
 };
 
 export fn getpriority(which: int, who: id_t) (int | errno) = {
@@ -574,21 +579,36 @@ export fn getpeername(sockfd: int, addr: nullable *sockaddr, addrlen: nullable *
 		sockfd: u64, addr: uintptr: u64, addrlen: uintptr: u64))?: int;
 };
 
-export fn sysctlbyname(name: str, oldp: nullable *opaque, oldlenp: nullable *size,
+export fn sysctl(name: []const int, oldp: nullable *opaque, oldlenp: nullable *size,
 		newp: nullable *const opaque, newlen: size) (void | errno) = {
-	let kname = kpath(name)?;
-	wrap_return(syscall6(SYS___sysctlbyname,
-		kname: uintptr: u64, len(name): u64,
+	wrap_return(syscall6(SYS___sysctl,
+		&name[0]: uintptr: u64, len(name): u64,
 		oldp: uintptr: u64, oldlenp: uintptr: u64,
 		newp: uintptr: u64, newlen: u64))?;
 };
 
-export fn dup2(oldfd: int, newfd: int) (int | errno) = {
-	return wrap_return(syscall2(SYS_dup2, oldfd: u64, newfd: u64))?: int;
+// export fn sysctlnametomib(name: str, oldp: nullable *opaque, oldlenp: nullable *size,
+export fn sysctlbyname(name: str, oldp: nullable *opaque, oldlenp: nullable *size,
+		newp: nullable *const opaque, newlen: size) (void | errno) = {
+
+	debug("sysctlbyname");
+	debug(name);
+	if (name == "hw.machine") {
+		memcpy(oldp: *opaque, &"x86_64": *opaque, 6);
+		*(oldlenp: *size) = 6;
+	} else {
+		return ENOTSUP;
+	};
+	//	TODO
+//	let kname = kpath(name)?;
+//	wrap_return(syscall6(SYS___sysctlbyname,
+//		kname: uintptr: u64, len(name): u64,
+//		oldp: uintptr: u64, oldlenp: uintptr: u64,
+//		newp: uintptr: u64, newlen: u64))?;
 };
 
-export fn posix_openpt(flags: int) (int | errno) = {
-	return wrap_return(syscall1(SYS_posix_openpt, flags: u64))?: int;
+export fn dup2(oldfd: int, newfd: int) (int | errno) = {
+	return wrap_return(syscall2(SYS_dup2, oldfd: u64, newfd: u64))?: int;
 };
 
 export fn posix_fallocate(fd: int, off: i64, ln: i64) (void | errno) = {
@@ -599,34 +619,6 @@ export fn posix_fallocate(fd: int, off: i64, ln: i64) (void | errno) = {
 export fn flock(fd: int, op: int) (void | errno) = {
 	wrap_return(syscall2(SYS_flock,
 		fd: u64, op: u64))?;
-};
-
-export fn shm_open(
-	shm_path: path,
-	oflags: int,
-	mode: mode_t,
-	shmflags: int,
-	anon_path: path,
-) (int | errno) = {
-	const shm_path = match (shm_path) {
-	case let string: *const u8 =>
-		if (string == SHM_ANON) yield SHM_ANON;
-		yield kpath(shm_path)?;
-	case =>
-		yield kpath(shm_path)?;
-	};
-	const anon_path = kpath(anon_path)?;
-	return wrap_return(syscall5(SYS_shm_open2,
-			shm_path: uintptr: u64,
-			oflags: u64,
-			mode: u64,
-			shmflags: u64,
-			anon_path: uintptr: u64))?: int;
-};
-
-export fn shm_unlink(shm_path: path) (void | errno) = {
-	const path = kpath(shm_path)?;
-	wrap_return(syscall1(SYS_shm_unlink, path: uintptr: u64))?;
 };
 
 export fn shmat(id: int, addr: *const opaque, flag: int) *opaque = {

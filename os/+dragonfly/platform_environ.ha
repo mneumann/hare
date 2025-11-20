@@ -49,43 +49,49 @@ export fn getenvs() []str = {
 
 // Returns the host kernel name.
 export fn sysname() const str = {
-	static let buf: [512]u8 = [0...];
-	let sz: size = len(buf);
-	rt::sysctlbyname("kern.ostype", &buf, &sz, null, 0)!;
-	return strings::fromutf8(buf[..(sz - 1)])!;
+	//static let buf: [512]u8 = [0...];
+	//let sz: size = len(buf);
+	//rt::sysctlbyname("kern.ostype", &buf, &sz, null, 0)!;
+	//return strings::fromutf8(buf[..(sz - 1)])!;
+	return "DragonFly";
 };
 
 // Returns the host system hostname.
 export fn hostname() const str = {
-	static let buf: [512]u8 = [0...];
-	let sz: size = len(buf);
-	rt::sysctlbyname("kern.hostname", &buf, &sz, null, 0)!;
-	return strings::fromutf8(buf[..(sz - 1)])!;
+	//static let buf: [512]u8 = [0...];
+	//let sz: size = len(buf);
+	//rt::sysctlbyname("kern.hostname", &buf, &sz, null, 0)!;
+	//return strings::fromutf8(buf[..(sz - 1)])!;
+	return "letsnote.localnet";
 };
 
 // Returns the host kernel version.
 export fn release() const str = {
-	static let buf: [512]u8 = [0...];
-	let sz: size = len(buf);
-	rt::sysctlbyname("kern.osrelease", &buf, &sz, null, 0)!;
-	return strings::fromutf8(buf[..(sz - 1)])!;
+	//static let buf: [512]u8 = [0...];
+	//let sz: size = len(buf);
+	//rt::sysctlbyname("kern.osrelease", &buf, &sz, null, 0)!;
+	//return strings::fromutf8(buf[..(sz - 1)])!;
+	return "6.5-DEVELOPMENT";
 };
 
 // Returns the host operating system version.
 export fn version() const str = {
-	static let buf: [512]u8 = [0...];
-	let sz: size = len(buf);
-	rt::sysctlbyname("kern.version", &buf, &sz, null, 0)!;
-	return strings::fromutf8(buf[..(sz - 1)])!;
+	//static let buf: [512]u8 = [0...];
+	//let sz: size = len(buf);
+	//rt::sysctlbyname("kern.version", &buf, &sz, null, 0)!;
+	//return strings::fromutf8(buf[..(sz - 1)])!;
+	return "blah blah blah";
 };
 
 // Returns the host CPU architecture, in a platform-specific format. See
 // [[architecture]] for a more portable wrapper.
 export fn machine() const str = {
-	static let buf: [32]u8 = [0...];
-	let sz: size = len(buf);
-	rt::sysctlbyname("hw.machine", &buf, &sz, null, 0)!;
-	return strings::fromutf8(buf[..sz - 1])!;
+	// TODO
+	//static let buf: [32]u8 = [0...];
+	//let sz: size = len(buf);
+	//rt::sysctlbyname("hw.machine", &buf, &sz, null, 0)!;
+	//return strings::fromutf8(buf[..sz - 1])!;
+	return "x86_64";
 };
 
 // Returns the host CPU architecture.
@@ -100,11 +106,12 @@ export fn architecture() arch = {
 // Returns the number of usable CPUs.
 export fn cpucount() (size | errors::error) = {
 	let count = 0;
-	let length = size(int);
-	match (rt::sysctlbyname("hw.ncpu", &count, &length, null, 0)) {
-	case void => void;
-	case let err: rt::errno =>
-		return errors::errno(err);
-	};
+	count = 8;
+	//let length = size(int);
+	//match (rt::sysctlbyname("hw.ncpu", &count, &length, null, 0)) {
+	//case void => void;
+	//case let err: rt::errno =>
+	//	return errors::errno(err);
+	//};
 	return count: size;
 };

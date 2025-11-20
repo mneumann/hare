@@ -66,7 +66,7 @@ fn open(path: str) (platform_cmd | error) = {
 	};
 	let success = false;
 	defer if (!success) rt::close(fd)!;
-	match (rt::faccessat(fd, "", rt::X_OK, rt::AT_EMPTY_PATH)) {
+	match (rt::access(path, rt::X_OK)) {
 	case let err: rt::errno =>
 		return errors::errno(err);
 	case let b: bool =>

@@ -135,9 +135,6 @@ fn fsflags_to_bsd(flags: fs::flag) (int | errors::unsupported) = {
 	if (flags & fs::flag::NONBLOCK == fs::flag::NONBLOCK) {
 		out |= rt::O_NONBLOCK;
 	};
-	if (flags & fs::flag::DSYNC == fs::flag::DSYNC) {
-		out |= rt::O_DSYNC;
-	};
 	if (flags & fs::flag::SYNC == fs::flag::SYNC) {
 		out |= rt::O_SYNC;
 	};
@@ -186,9 +183,6 @@ fn bsd_to_fsflags(flags: int) fs::flag = {
 	};
 	if (flags & rt::O_NONBLOCK == rt::O_NONBLOCK) {
 		out |= fs::flag::NONBLOCK;
-	};
-	if (flags & rt::O_DSYNC == rt::O_DSYNC) {
-		out |= fs::flag::DSYNC;
 	};
 	if (flags & rt::O_SYNC == rt::O_SYNC) {
 		out |= fs::flag::SYNC;
@@ -474,9 +468,12 @@ fn iter_next(iter: *fs::iterator) (fs::dirent | done | fs::error) = {
 		iter.buf_end = n;
 		iter.buf_pos = 0;
 	};
-	let de = &iter.buf[iter.buf_pos]: *rt::freebsd11_dirent;
-	iter.buf_pos += de.d_reclen;
+	let de = &iter.buf[iter.buf_pos]: *rt::dragonfly_dirent;
+
+	iter.buf_pos += rt::DIRENT_RECLEN(de.d_namlen);
+
 	let name = c::tostr(&de.d_name: *const c::char)?;
+
 	if (name == "." || name == "..") {
 		return iter_next(iter);
 	};

@@ -25,7 +25,7 @@ export fn openpty() ((io::file, io::file) | fs::error) = {
 
 // Opens an available pseudoterminal master.
 fn open_master() (io::file | fs::error) = {
-	match (rt::posix_openpt(rt::O_RDWR | rt::O_NOCTTY)) {
+	match (rt::open("/dev/ptmx", rt::O_RDWR | rt::O_NOCTTY, 0)) {
 	case let e: rt::errno =>
 		return errors::errno(e);
 	case let i: int =>
