@@ -24,10 +24,7 @@ export type mflag = enum uint {
 	NOSYNC = rt::MAP_NOSYNC,
 	FILE = rt::MAP_FILE,
 	ANON = rt::MAP_ANON,
-	GUARD = rt::MAP_GUARD,
-	EXCL = rt::MAP_EXCL,
 	NOCORE = rt::MAP_NOCORE,
-	PREFAULT_READ = rt::MAP_PREFAULT_READ,
 	_32BIT = rt::MAP_32BIT,
 };
 

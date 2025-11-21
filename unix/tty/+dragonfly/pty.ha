@@ -43,7 +43,7 @@ fn get_slave(master: io::file) (io::file | fs::error) =
 // function.
 export fn ptsname(master: io::file) (str | error) = {
 	// Ensure that the file descriptor refers to a master
-	match (rt::ioctl(master, rt::TIOCPTMASTER, null)) {
+	match (rt::ioctl(master, rt::TIOCISPTMASTER, null)) {
 	case let e: rt::errno =>
 		if (e == rt::EBADF) return errors::invalid
 		else return errors::unsupported;
@@ -52,7 +52,7 @@ export fn ptsname(master: io::file) (str | error) = {
 
 	let name: [rt::PATH_MAX]u8 = [0...];
 	let fiodgname_arg = (len(name), &name);
-	match (rt::ioctl(master, rt::FIODGNAME, &fiodgname_arg)) {
+	match (rt::ioctl(master, rt::FIODNAME, &fiodgname_arg)) {
 	case let e: rt::errno =>
 		switch (e) {
 		case rt::EBADF =>
@@ -64,8 +64,10 @@ export fn ptsname(master: io::file) (str | error) = {
 		};
 	case =>
 		static let path_buf: [rt::PATH_MAX]u8 = [0...];
-		return fmt::bsprintf(path_buf,
+		let result = fmt::bsprintf(path_buf,
 			"/dev/{}", c::tostr(&name: *const c::char)!)!;
+		path_buf[7] = 's';
+		return result;
 	};
 };
 
