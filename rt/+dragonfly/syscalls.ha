@@ -24,8 +24,8 @@ fn syscall6(_: u64, _: u64, _: u64, _: u64, _: u64, _: u64, _: u64) u64;
 fn _mmap(_: u64, _: u64, _: u64, _: u64, _: u64, _: u64) u64;
 fn _pipe2(_: u64, _: u64) u64;
 
-export def NAME_MAX: size = 255z;
-export def PATH_MAX: size = 1024z;
+export def NAME_MAX: size = 255z;	// max bytes in a file name
+export def PATH_MAX: size = 1024z;	// max bytes in pathname
 export type path = (str | []u8 | *const u8);
 let pathbuf: [PATH_MAX]u8 = [0...];
 

@@ -50,8 +50,11 @@ export fn ptsname(master: io::file) (str | error) = {
 	case => void;
 	};
 
-	let name: [rt::PATH_MAX]u8 = [0...];
-	let fiodgname_arg = (len(name), &name);
+	let name: [rt::NAME_MAX + 1]u8 = [0...];
+	let fiodgname_arg = rt::fiodname_args {
+		name = &name,
+		length = len(name): uint
+	};
 	match (rt::ioctl(master, rt::FIODNAME, &fiodgname_arg)) {
 	case let e: rt::errno =>
 		switch (e) {
@@ -63,11 +66,10 @@ export fn ptsname(master: io::file) (str | error) = {
 			abort("Unexpected error from ioctl");
 		};
 	case =>
-		static let path_buf: [rt::PATH_MAX]u8 = [0...];
-		let result = fmt::bsprintf(path_buf,
+		name[2] = 's'; // ptm -> pts
+		static let path_buf: [len("/dev/")+rt::NAME_MAX+1]u8 = [0...];
+		return fmt::bsprintf(path_buf,
 			"/dev/{}", c::tostr(&name: *const c::char)!)!;
-		path_buf[7] = 's';
-		return result;
 	};
 };
 

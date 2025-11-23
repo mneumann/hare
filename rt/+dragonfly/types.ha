@@ -329,6 +329,13 @@ export def TIOCISPTMASTER: u64 = 0x20007455;	// is pty master
 export def TIOCSPGRP: u64 = 0x80047476;		// set pgrp on tty
 export def FIODNAME: u64 = 0x80106678;		// get name of device on that fildesc
 
+
+// argument for ioctl FIODNAME
+export type fiodname_args = struct {
+	name: *opaque,
+        length: uint,
+};
+
 export type rusage = struct {
 	ru_utime: timeval,	// user time used
 	ru_stime: timeval,	// system time used
