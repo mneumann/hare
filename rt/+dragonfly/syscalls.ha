@@ -82,13 +82,20 @@ export fn close(fd: int) (void | errno) = {
 };
 
 export fn lseek(fd: int, off: i64, whence: int) (i64 | errno) = {
-	return wrap_return(syscall3(SYS_lseek,
-		fd: u64, off: u64, whence: u64))?: i64;
+	return wrap_return(syscall4(SYS_lseek,
+		fd: u64, 0: u64, off: u64, whence: u64))?: i64;
 };
 
 export fn ftruncate(fd: int, ln: off_t) (void | errno) = {
-	wrap_return(syscall2(SYS_ftruncate, fd: u64, ln: u32))?;
+	wrap_return(syscall3(SYS_ftruncate, fd: u64, 0: u64, ln: u64))?;
 };
+
+export fn truncate(path: path, ln: off_t) (void | errno) = {
+	let path = kpath(path)?;
+	wrap_return(syscall3(SYS_truncate, path: uintptr: u64,
+		0: u64, ln: u64))?;
+};
+
 
 export fn pipe2(pipefd: *[2]int, flags: int) (void | errno) = {
 	wrap_return(_pipe2(pipefd: uintptr: u64, flags: u64))?;
