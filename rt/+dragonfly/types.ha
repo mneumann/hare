@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 // (c) Hare authors <https://harelang.org>
 
-
 export type time_t = i64;
 export type suseconds_t = i64;
 export type dev_t = u32;
